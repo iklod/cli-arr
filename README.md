@@ -1,2 +1,5 @@
 # cli-arr
-cli with pyarrow
+
+cli with pyarrow and duckDB.
+
+Personal project to learn.
