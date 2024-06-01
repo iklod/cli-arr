@@ -3,6 +3,7 @@ import glob
 from pyarrow import csv
 import pyarrow as pa
 import pyarrow.parquet as pq
+import sys
 
 
 @click.command()
@@ -43,13 +44,16 @@ def concat(src, out, delimiter, format, column_name, include_columns, header):
         csv_path += glob.glob(fn, recursive=False)
     if not csv_path:
         click.echo("No file(s) found")
+        sys.exit()
 
     csv_readers = []
     read_options = csv.ReadOptions(autogenerate_column_names=False)
     if not header and len(column_name) == 0:
         read_options = csv.ReadOptions(autogenerate_column_names=True)
+    elif not header and len(column_name) > 0:
+        read_options = csv.ReadOptions(column_name=list(column_name))
     parse_options = csv.ParseOptions(delimiter=delimiter)
-    convert_options = csv.ConvertOptions(include_columns=list(column_name))
+    convert_options = csv.ConvertOptions(include_columns=list(include_columns))
     for file_path in csv_path:
         try:
             csv_reader = csv.read_csv(
@@ -61,7 +65,7 @@ def concat(src, out, delimiter, format, column_name, include_columns, header):
             csv_readers.append(csv_reader)
         except Exception:
             click.echo(f"cannot read_csv {file_path}")
-
+            sys.exit()
         if len(csv_readers) > 0:
             result_table = pa.concat_tables(csv_readers, unify_schemas=True)
             if format == "parquet":
@@ -73,4 +77,5 @@ def concat(src, out, delimiter, format, column_name, include_columns, header):
                     write_options=csv.WriteOptions(delimiter=delimiter),
                 )
         else:
-            click.echo("Wrong format: use csv")
+            click.echo("Nothing to read")
+            sys.exit()
